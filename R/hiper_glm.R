@@ -1,31 +1,44 @@
 #' @export hiper_glm
-#' @export coef.hglm
-#' @export vcov.hglm
-#' @export print.hglm
+hiper_glm <- function(design, outcome, model='linear', option = list()){
 
-hiper_glm <- function(design, outcome, model='linear'){
+  ## Check validity
   supported_models <- c('linear')
-  if(!(model %in%  supported_models)){stop(sprintf("The model %s is not supported.", model))
-}
-  
-  warning("The function is yet to be implemented")
-  ## TODO: 
-  hglm_out <- list()
+  if(!(model %in%  supported_models)){stop(sprintf("The model %s is not supported.",
+                                                   model))
+  }
+
+
+  if (is.null(option$mle_solver)) {
+    if (model == 'linear') {
+      beta_est <- pseudoinverse_finder(design, outcome)
+    } else {
+      # TODO: implement iteratively reweighted least-sq
+      stop("Not yet implemented.")
+    }
+  } else {
+    beta_est <- BFGS_finder(design, outcome, option$mle_solver)
+  }
+
+  ## Output
+  hglm_out <- list(coef = beta_est)
   class(hglm_out) <- "hglm"
-  hglm_out
+  return(hglm_out)
 }
 
 
+#' @export coef.hglm
 coef.hglm <- function(hglm_out){
-  return("This is the coefs")
+  return(hglm_out$coef)
 }
 
-
+#' @export vcov.hglm
 vcov.hglm <- function(hglm_out){
-  return("This is the matrix")
+  return(diag(length(hglm_out$coef)))
 }
 
+#' @export print.hglm
 print.hglm <- function(hglm_out){
   return("printing...")
 }
+
 

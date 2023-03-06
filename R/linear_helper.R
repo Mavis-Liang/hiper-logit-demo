@@ -11,15 +11,16 @@ gaussian_loglik <- function(beta, X, Y, noise_var = 1){
 
   return(-0.5 * sum((Y - X %*% beta)^2) / noise_var)
 }
-## The gradient
-gradient <- function(beta, X, Y){
 
+## The gradient
+linear_gradient <- function(beta, X, Y){
   gr = as.vector(t(X) %*% (Y - X %*% beta))
   return(gr)
 }
 
-##
-BFGS_finder <- function(design, outcome, method){
+
+## BFGS
+BFGS_finder_linear <- function(design, outcome, method){
   init_coef <- rep(0, ncol(design))
 
   obj_fn <- function(coef) {
@@ -27,7 +28,7 @@ BFGS_finder <- function(design, outcome, method){
   }
 
   obj_grad <- function(coef){
-    gradient(coef, design, outcome)
+    linear_gradient(coef, design, outcome)
   }
 
   BFGS <- stats::optim(init_coef,
@@ -36,3 +37,6 @@ BFGS_finder <- function(design, outcome, method){
                        control = list(fnscale = -1))
   return(BFGS$par)
 }
+
+
+

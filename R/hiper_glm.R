@@ -2,9 +2,9 @@
 hiper_glm <- function(design, outcome, model='linear', option = list()){
 
   ## Check validity
-  supported_models <- c('linear')
-  if(!(model %in%  supported_models)){stop(sprintf("The model %s is not supported.",
-                                                   model))
+  supported_models <- c("linear", "logit")
+  if(!(model %in%  supported_models)){
+    stop(sprintf("The model %s is not supported.", model))
   }
 
 
@@ -12,11 +12,14 @@ hiper_glm <- function(design, outcome, model='linear', option = list()){
     if (model == 'linear') {
       beta_est <- pseudoinverse_finder(design, outcome)
     } else {
-      # TODO: implement iteratively reweighted least-sq
-      stop("Not yet implemented.")
+      beta_est <- newton(design, outcome)
     }
   } else {
-    beta_est <- BFGS_finder(design, outcome, option$mle_solver)
+    if(model == 'linear') {
+      beta_est <- BFGS_finder_linear(design, outcome, option$mle_solver)
+    } else{
+      beta_est <- BFGS_finder_logit(design, outcome, option$mle_solver)
+    }
   }
 
   ## Output
@@ -26,19 +29,6 @@ hiper_glm <- function(design, outcome, model='linear', option = list()){
 }
 
 
-#' @export coef.hglm
-coef.hglm <- function(hglm_out){
-  return(hglm_out$coef)
-}
-
-#' @export vcov.hglm
-vcov.hglm <- function(hglm_out){
-  return(diag(length(hglm_out$coef)))
-}
-
-#' @export print.hglm
-print.hglm <- function(hglm_out){
-  return("printing...")
-}
-
+coef(hiper_glm(design, outcome, model = "logit", option = list(mle_solver="BFGS")))
+# 0.3850242  9.0003779 -7.8864191 -0.7692372
 

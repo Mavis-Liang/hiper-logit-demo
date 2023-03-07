@@ -57,12 +57,13 @@ newton <- function(X, Y, maxIt = 100){
   for (i in 1:maxIt) {
     loglik_prev <- loglik_curr
 
+    ## Update the coefficients
     gr <- as.matrix(logit_gradient(coefs, X, Y))
     h <- hessian(coefs, X, Y)
     coefs <- as.vector(coefs - solve(h) %*% gr)
 
+    ## Check convergence
     loglik_curr <- logit_loglik(coefs, X, Y)
-
     if (converged(loglik_curr, loglik_prev, df = p)){
       return(coefs)
     }

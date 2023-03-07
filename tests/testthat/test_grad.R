@@ -57,6 +57,39 @@ test_that("logistic model's analytical gradient is close to numerical one", {
   expect_true(grads_are_close)
 })
 
+approx_second_grad <- function(func, x, dx = .Machine$double.eps^(1/3)) {
+  numerical_grad <- matrix(nrow = length(x), ncol = length(x))
+
+  for (i in 1:length(x)) {
+      x_m <- x
+      x_m[i] <- x_m[i] - dx
+      x_p <- x
+      x_p[i] <- x_p[i] + dx
+      numerical_grad[i,] <- (func(x_p) - func(x_m)) / (2 * dx)
+  }
+  return(numerical_grad)
+}
+
+test_that("Hessian matrix is alright", {
+  n_obs <- 32; n_pred <- 4
+  data <- simulate_data(n_obs, n_pred, model = 'logit', seed = 1918)
+  design <- data$design; outcome <- data$outcome
+
+  gradient_func <- function (coef) {
+    logit_gradient(coef, data$design, data$outcome)
+  }
+
+  set.seed(615)
+  regcoef <- rnorm(n_pred)
+  numerical_hessian <- approx_second_grad(gradient_func, regcoef)
+  analytical_hessian <- hessian(regcoef, data$design, data$outcome)
+  grads_are_close <- are_all_close(
+    analytical_hessian, numerical_hessian, abs_tol = Inf, rel_tol = 1e-3
+  )
+
+  expect_true(grads_are_close)
+})
+
 
 
 

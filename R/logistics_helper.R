@@ -72,20 +72,26 @@ hessian <- function(reg_coef, design, outcome){
 }
 
 
-
+newton_single_iteration <- function(coefs, loglik_curr, X, Y, option = "QR"){
+  ## Update the coefficients
+  gr <- as.matrix(logit_gradient(coefs, X, Y))
+  h <- hessian(coefs, X, Y)
+  if (option=="QR"){
+    coefs <- as.vector(coefs - qr_eigen(h, gr))
+  } else {
+    coefs <- as.vector(coefs - solve(h, gr))
+  }
+  return(coefs)
+}
 
 ## Newton's method main function
-newton <- function(X, Y, maxIt = 100, rel_tol = 1e-6, abs_tol = 1e-6){
+newton <- function(X, Y, maxIt = 100, rel_tol = 1e-6, abs_tol = 1e-6, solver = "QR"){
   p <- ncol(X)
   coefs <- rep(0, p)
   loglik_curr <- logit_loglik(coefs, X, Y)
   for (i in 1:maxIt) {
     loglik_prev <- loglik_curr
-
-    ## Update the coefficients
-    gr <- as.matrix(logit_gradient(coefs, X, Y))
-    h <- hessian(coefs, X, Y)
-    coefs <- as.vector(coefs - solve(h, gr))
+    coefs <- newton_single_iteration(coefs, loglik_curr, X, Y, option = solver)
 
     ## Check convergence
     loglik_curr <- logit_loglik(coefs, X, Y)

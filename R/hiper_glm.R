@@ -16,7 +16,11 @@ hiper_glm <- function(design, outcome, model='linear', option = list()){
 
   } else if (model == 'logit') {
     if (is.null(option$mle_solver)) {
-      beta_est <- newton(design, outcome)
+      if (is.null(option$newton_solver)){
+        beta_est <- newton(design, outcome)
+      }else{
+        beta_est <- newton(design, outcome, solver = option$newton_solver)
+      }
     } else {
       beta_est <- BFGS_finder_logit(design, outcome, option$mle_solver)
     }

@@ -1,7 +1,7 @@
 ## pseudo inverse MLE finder
 pseudoinverse_finder <- function(design, outcome){
   XTX <- t(design) %*% design
-  mle_coef <- solve(XTX, t(design) %*% outcome)
+  mle_coef <- qr.solve(XTX, t(design) %*% outcome)
   return(as.vector(mle_coef))
 }
 

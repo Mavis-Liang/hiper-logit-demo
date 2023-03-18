@@ -1,16 +1,38 @@
+expit <- function(x){
+  1 / (1 + exp(-x))
+}
+
 ## log-likelihood
-logit_loglik <- function(beta, X, Y){
-  p <- 1 / (1 + exp(-X %*% beta))
-  l <- -(t(Y) %*% log(p) + t(1 - Y) %*% log(1 - p))
-  return(l)
+logit_loglik <- function(
+    reg_coef, design, outcome
+) {
+  if (is.list(outcome)) {
+    n_success <- outcome$n_success
+    n_trial <- outcome$n_trial
+  } else {
+    n_success <- outcome
+    n_trial <- rep(1, length(n_success)) # Assume binary outcome
+  }
+  logit_prob <- design %*% reg_coef
+  loglik <- sum(n_success * logit_prob - n_trial * log(1 + exp(logit_prob)))
+  # TODO: improve numerical stability for logit_prob >> 1
+  return(loglik)
 }
 
 
-## gradient
-logit_gradient <- function(beta, X, Y){
-  y_est <- 1 / (1 + exp(-X %*% beta))
-  gr = as.vector(t(X) %*% (y_est - Y))
-  return(gr)
+logit_gradient <- function(reg_coef, design, outcome){
+  if (is.list(outcome)) {
+    n_success <- outcome$n_success
+    n_trial <- outcome$n_trial
+  } else {
+    n_success <- outcome
+    n_trial <- rep(1, length(n_success)) # Assume binary outcome
+  }
+  logit_prob <- design %*% reg_coef
+  predicted_prob <- 1 / (1 + exp(-logit_prob))
+  grad <- t(design) %*% (n_success - n_trial * predicted_prob)
+  grad <- as.vector(grad)
+  return(grad)
 }
 
 ## BFGS
@@ -34,23 +56,26 @@ BFGS_finder_logit <- function(design, outcome, method){
 
 
 ## Hessian matrix
-hessian <- function(beta, X, Y){
-  P <- 1 / (1 + exp(-X %*% beta))
-  return(t(X) %*% diag(as.vector(P * (1 - P))) %*% X)
+hessian <- function(reg_coef, design, outcome){
+  if (is.list(outcome)) {
+    n_success <- outcome$n_success
+    n_trial <- outcome$n_trial
+  } else {
+    n_success <- outcome
+    n_trial <- rep(1, length(n_success)) # Assume binary outcome
+  }
+  logit_prob <- as.vector(design %*% reg_coef)
+  predicted_prob <- 1 / (1 + exp(-logit_prob))
+  weight <- n_trial * predicted_prob * (1 - predicted_prob)
+  hess <- - t(design) %*% (outer(weight, rep(1, ncol(design))) * design)
+  return(hess)
 }
 
 
-## Check convergence
-converged <- function(curr, prev, df){
-  tol <- qchisq(0.95, df, lower.tail = F) / 2
-  abs_diff <- abs(curr - prev)
-  within_atol <- abs_diff < tol
-  within_rtol <- (abs_diff < tol * max(abs(curr), abs(prev)))
-  return(within_atol && within_rtol)
-}
+
 
 ## Newton's method main function
-newton <- function(X, Y, maxIt = 100){
+newton <- function(X, Y, maxIt = 100, rel_tol = 1e-6, abs_tol = 1e-6){
   p <- ncol(X)
   coefs <- rep(0, p)
   loglik_curr <- logit_loglik(coefs, X, Y)
@@ -60,11 +85,12 @@ newton <- function(X, Y, maxIt = 100){
     ## Update the coefficients
     gr <- as.matrix(logit_gradient(coefs, X, Y))
     h <- hessian(coefs, X, Y)
-    coefs <- as.vector(coefs - solve(h) %*% gr)
+    coefs <- as.vector(coefs - solve(h, gr))
 
     ## Check convergence
     loglik_curr <- logit_loglik(coefs, X, Y)
-    if (converged(loglik_curr, loglik_prev, df = p)){
+    converged <- 2 * abs(loglik_curr - loglik_prev) < (abs_tol + rel_tol * abs(loglik_curr))
+    if (converged){
       return(coefs)
     }
   }

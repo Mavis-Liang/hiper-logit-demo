@@ -7,17 +7,17 @@ hiper_glm <- function(design, outcome, model='linear', option = list()){
     stop(sprintf("The model %s is not supported.", model))
   }
 
-
-  if (is.null(option$mle_solver)) {
-    if (model == 'linear') {
+  if (model == 'linear') {
+    if (is.null(option$mle_solver)) {
       beta_est <- pseudoinverse_finder(design, outcome)
-    } else {
-      beta_est <- newton(design, outcome)
-    }
-  } else {
-    if(model == 'linear') {
-      beta_est <- BFGS_finder_linear(design, outcome, option$mle_solver)
     } else{
+      beta_est <- BFGS_finder_linear(design, outcome, option$mle_solver)
+    }
+
+  } else if (model == 'logit') {
+    if (is.null(option$mle_solver)) {
+      beta_est <- newton(design, outcome)
+    } else {
       beta_est <- BFGS_finder_logit(design, outcome, option$mle_solver)
     }
   }
@@ -29,6 +29,4 @@ hiper_glm <- function(design, outcome, model='linear', option = list()){
 }
 
 
-coef(hiper_glm(design, outcome, model = "logit", option = list(mle_solver="BFGS")))
-# 0.3850242  9.0003779 -7.8864191 -0.7692372
 
